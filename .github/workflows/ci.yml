@@ -1,0 +1,59 @@
+name: mlops
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Compile the application
+        run: python -m compileall -q backend frontend spark-processor scrapers tests
+
+      - name: Check the MLOps wiring
+        run: python tests/test_mlops_layout.py
+
+      - name: Validate Kubernetes manifests
+        run: |
+          curl -sL https://github.com/yannh/kubeconform/releases/download/v0.6.7/kubeconform-linux-amd64.tar.gz | tar xz
+          ./kubeconform -summary -kubernetes-version 1.29.0 k8s/*.yaml
+
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "1.9.8"
+
+      - name: Validate Terraform
+        working-directory: infra/terraform
+        run: |
+          terraform init -backend=false
+          terraform validate
+
+  images:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build the Streamlit image
+        run: docker build -t stockgod-frontend:ci frontend
+
+      - name: Streamlit answers its health check
+        run: |
+          docker run -d --name streamlit -p 8501:8501 stockgod-frontend:ci
+          for i in 1 2 3 4 5 6 7 8 9 10; do
+            if curl -fsS http://127.0.0.1:8501/_stcore/health; then
+              exit 0
+            fi
+            sleep 3
+          done
+          docker logs streamlit
+          exit 1
+
+      - name: Build the API image
+        run: docker build -t stockgod-api:ci backend
