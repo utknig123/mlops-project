@@ -18,6 +18,22 @@ Scrapes multi-source news & social → scores with **FinBERT** → stores in Kaf
 
 ---
 
+## MLOps
+
+The release path is in this repo, not only the app.
+
+| Piece | Where |
+| --- | --- |
+| GitHub | https://github.com/utknig123/mlops-project |
+| GitHub Actions | `.github/workflows/ci.yml` |
+| Docker images | `frontend/Dockerfile`, `backend/Dockerfile`, `docker-compose.yml` |
+| Kubernetes | `k8s/` |
+| Terraform for the cluster | `infra/terraform/` |
+| Terraform for Streamlit on Azure | `infra/terraform/azure/` |
+| Prometheus and Grafana | `monitoring/` |
+
+How to talk through each one is in `PROJECT_GUIDE.md`.
+
 ## Quick start (Docker)
 
 ### Prerequisites

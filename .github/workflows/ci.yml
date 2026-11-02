@@ -4,6 +4,10 @@ on:
   push:
   pull_request:
 
+permissions:
+  contents: read
+  packages: write
+
 jobs:
   check:
     runs-on: ubuntu-latest
@@ -29,8 +33,14 @@ jobs:
         with:
           terraform_version: "1.9.8"
 
-      - name: Validate Terraform
+      - name: Validate Kubernetes Terraform
         working-directory: infra/terraform
+        run: |
+          terraform init -backend=false
+          terraform validate
+
+      - name: Validate Azure Streamlit Terraform
+        working-directory: infra/terraform/azure
         run: |
           terraform init -backend=false
           terraform validate
@@ -57,3 +67,12 @@ jobs:
 
       - name: Build the API image
         run: docker build -t stockgod-api:ci backend
+
+      - name: Publish the Streamlit image
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        run: |
+          echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
+          docker tag stockgod-frontend:ci "ghcr.io/${{ github.repository_owner }}/mlops-project-streamlit:${{ github.sha }}"
+          docker tag stockgod-frontend:ci "ghcr.io/${{ github.repository_owner }}/mlops-project-streamlit:latest"
+          docker push "ghcr.io/${{ github.repository_owner }}/mlops-project-streamlit:${{ github.sha }}"
+          docker push "ghcr.io/${{ github.repository_owner }}/mlops-project-streamlit:latest"

@@ -80,6 +80,39 @@ Streamlit on the cluster is NodePort 30501. Grafana is NodePort 30300. On Docker
 
 Local passwords in Compose and the manifests are `admin` / `admin123` for the databases and `admin` / `admin` for Grafana. They are for a laptop demo, not a public server.
 
+## Azure Streamlit
+
+`infra/terraform/azure/main.tf` is a second Terraform root. It creates a resource group in Central India, a Container Apps environment, and one container app that runs the Streamlit image on port 8501. GitHub Actions publishes that image to `ghcr.io/utknig123/mlops-project-streamlit` on a push to `main`.
+
+This machine has not applied it. Apply needs an Azure login and a real subscription id:
+
+```text
+az login
+cd infra/terraform/azure
+terraform init
+terraform apply -var="subscription_id=<your subscription id>" -var="api_url=<public API URL>"
+```
+
+`terraform validate` does not create anything in Azure. Until apply, the running Streamlit is the local one at http://localhost:8501.
+
+## What to say, service by service
+
+**Git.** "The project is versioned on GitHub at utknig123/mlops-project. Main is the line I demo. I can show the commit that added metrics, Kubernetes, and the Azure module."
+
+**GitHub Actions.** "Every push runs CI. It compiles the Python, checks that Prometheus, Kubernetes, and both Terraform roots still match the app, validates the YAML, validates both Terraform modules, builds the Streamlit image, and curls `/_stcore/health`. It also builds the API image. On main it pushes the Streamlit image to GitHub Container Registry. That is the CD half. A red workflow means I do not call the image releasable."
+
+**Docker.** "The Streamlit Dockerfile and the API Dockerfile are the build. Docker Compose is how I run the whole product on a laptop: API, Streamlit, Postgres, MongoDB, Redis, Kafka, Spark, Prometheus, and Grafana. I have run that compose stack. Streamlit is on port 8501."
+
+**Kubernetes.** "The `k8s` folder is the serving deploy: Streamlit, API, Postgres, MongoDB, Redis, Prometheus, and Grafana. Streamlit is a NodePort on 30501. The probes hit `/_stcore/health` and `/health`. Spark and the scrapers stay in Compose. I do not say the cluster is in the cloud."
+
+**Terraform.** "There are two roots. `infra/terraform` applies the Kubernetes YAML through the kubectl provider, so the cluster is created from code. `infra/terraform/azure` is the cloud root: resource group, Log Analytics, Container Apps environment, and the Streamlit container app. Both validate in GitHub Actions. I apply the Azure one only after `az login`, and I say that plainly."
+
+**Prometheus.** "Prometheus scrapes `http://api:8000/metrics` every 15 seconds. The series I show is `http_requests_total`. `up` is 1 for the API. There is no login. The UI is localhost:9090."
+
+**Grafana.** "Grafana reads Prometheus. Login is admin / admin, not a Google account. The board is StockGod API, at localhost:3000. It graphs request rate and API memory. If the password screen appears, I type admin and click Skip."
+
+**Streamlit.** "Streamlit is the product UI. Locally it is localhost:8501 and it calls the API. The same image is what Azure Container Apps would run, from the GitHub package, on port 8501, with the URL printed by the Terraform output `streamlit_url`."
+
 ## What to say
 
 Use this order. It is about two minutes, then the demo.
@@ -103,7 +136,8 @@ Then show, in this order: the Streamlit page, `/docs`, the `/metrics` text, Prom
 
 ## What you should not claim
 
-- Do not say this is running in a cloud account. Terraform targets whatever cluster is in your kubeconfig.
+- Do not say the Azure Container App is already live. The module validates. Apply happens after `az login`.
+- The Kubernetes Terraform targets whatever cluster is in your kubeconfig.
 - Do not say Kafka metrics are on the Grafana board. The board is the API.
 - Do not say the Kubernetes deploy includes the Spark processor and the scrapers. Those stay in Docker Compose.
 - The database passwords in the repo are demo passwords.

@@ -40,6 +40,15 @@ def test_terraform_applies_the_manifests():
     assert "k8s/*.yaml" in terraform
 
 
+def test_azure_terraform_deploys_streamlit():
+    azure = read("infra/terraform/azure/main.tf")
+    assert "azurerm_container_app" in azure
+    assert "target_port      = 8501" in azure
+    workflow = read(".github/workflows/ci.yml")
+    assert "infra/terraform/azure" in workflow
+    assert "mlops-project-streamlit" in workflow
+
+
 def test_compose_still_runs_streamlit_and_grafana():
     compose = read("docker-compose.yml")
     assert "8501:8501" in compose
@@ -53,5 +62,6 @@ if __name__ == "__main__":
     test_grafana_dashboard_uses_those_metrics()
     test_streamlit_is_deployed_in_kubernetes()
     test_terraform_applies_the_manifests()
+    test_azure_terraform_deploys_streamlit()
     test_compose_still_runs_streamlit_and_grafana()
     print("mlops layout ok")
