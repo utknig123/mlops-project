@@ -18,7 +18,7 @@ def test_api_exposes_prometheus_metrics():
 def test_prometheus_scrapes_the_api():
     config = read("monitoring/prometheus.yml")
     assert "metrics_path: /metrics" in config
-    assert "api:8000" in config
+    assert "api:8001" in config
 
 
 def test_grafana_dashboard_uses_those_metrics():
